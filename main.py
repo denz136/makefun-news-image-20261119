@@ -2,7 +2,7 @@
 """Writes /output/entry.png — a one-image summary of world news for Thursday 19 November 2026.
 
 Pure Python standard library: the PNG is rasterised and encoded here with zlib only.
-Node-compatible alternative lives in main.ts; the grader runs main.py with Python 3.13.
+The grader runs main.py with Python 3.13.
 
     MAKEFUN_OUTPUT_DIR=out python3 main.py
 """
@@ -17,7 +17,7 @@ BG = (13, 18, 30)
 PANEL = (23, 31, 46)
 PANEL_EDGE = (38, 49, 70)
 INK = (242, 246, 252)
-INK_DIM = (170, 184, 204)  # rev2: brighter for legibility at 300px
+INK_DIM = (176, 190, 210)
 RED = (226, 74, 74)
 ORANGE = (240, 152, 62)
 BLUE = (74, 144, 236)
@@ -34,7 +34,7 @@ for _ in range(H):
     pix += _row
 
 
-CLIP = None  # (x0, y0, x1, y1) optional clip rectangle for artwork
+CLIP = None
 
 
 def px(x, y, c):
@@ -139,7 +139,7 @@ FONT = {
     '"': ("101", "101", "000", "000", "000"),
     '&': ("110", "100", "111", "101", "111"),
 }
-ADV = 6  # glyph advance in font units (3 wide + 3 gap)
+ADV = 6
 
 
 def text_width(s, scale):
@@ -149,7 +149,7 @@ def text_width(s, scale):
 def draw_text(s, x, y, c, scale=2):
     cx = x
     for ch in s.upper():
-        glyph = FONT.get(ch, FONT['?'] if '?' in FONT else FONT[' '])
+        glyph = FONT.get(ch, FONT[' '])
         for gy, row in enumerate(glyph):
             for gx, v in enumerate(row):
                 if v == '1':
@@ -219,7 +219,7 @@ rect(0, 126, W, 130, RED)
 draw_text('WORLD NEWS', 48, 26, INK, 7)
 draw_text('THURSDAY 19 NOVEMBER 2026', 50, 82, (150, 185, 232), 4)
 
-# ---------------------------------------------------------------- 2x2 panels
+# rev4 layout: 2x2 lead panels + dense briefs columns below
 PX0, PY0, PW, PH = 40, 150, 460, 300
 GAPX, GAPY = 24, 20
 arts = []
@@ -253,7 +253,7 @@ for idx, st in enumerate(STORIES):
         draw_text(ln, x + 20, hy, INK, hs)
         hy += 7 * hs + 8
 
-    # revision 2: hairline rule under the headline block for cleaner separation
+    # hairline rule under the headline block for cleaner separation
     rect(x + 20, hy + 2, x + PW - 24, hy + 3, (48, 62, 88))
     hy += 12
 
@@ -274,19 +274,16 @@ ax, ay, aw, ah = arts[0][1], arts[0][2], arts[0][3], arts[0][4]
 CLIP = (ax + 4, ay + 140, ax + PW - 4, ay + PH - 4)
 gx0, gy0 = ax + 250, ay + 148
 rect(gx0, gy0, gx0 + 180, gy0 + 140, (28, 38, 56))
-# water body
 for i in range(60):
     rect(gx0 + 20 + i, gy0 + 30 + i, gx0 + 26 + i, gy0 + 120 - i, WATER)
 draw_text('GULF', gx0 + 34, gy0 + 66, (150, 190, 240), 2)
-# Iran landmass
 rect(gx0 + 118, gy0 + 18, gx0 + 176, gy0 + 128, (44, 52, 44))
 draw_text('IRAN', gx0 + 122, gy0 + 60, (168, 180, 150), 2)
-# targets: Kuwait airbase + Bahrain
 circle(gx0 + 46, gy0 + 40, 7, ORANGE, True)
 draw_text('KUWAIT AB', gx0 - 10, gy0 + 56, INK_DIM, 1)
 circle(gx0 + 40, gy0 + 96, 6, ORANGE, True)
 draw_text('BAHRAIN', gx0 - 6, gy0 + 110, INK_DIM, 1)
-circle(gx0 + 128, gy0 + 34, 5, RED, True)  # Qeshm
+circle(gx0 + 128, gy0 + 34, 5, RED, True)
 draw_text('QESHM', gx0 + 136, gy0 + 28, RED, 1)
 line(gx0 + 124, gy0 + 40, gx0 + 52, gy0 + 44, RED, 2)
 line(gx0 + 124, gy0 + 46, gx0 + 46, gy0 + 98, RED, 2)
@@ -309,11 +306,10 @@ bx0, by0 = ax + 30, ay + 186
 rect(bx0, by0 + 60, bx0 + 400, by0 + 110, SEA)
 for i in range(0, 400, 24):
     rect(bx0 + i, by0 + 78, bx0 + i + 12, by0 + 82, (72, 104, 150))
-rect(bx0, by0 + 34, bx0 + 150, by0 + 52, STEEL)      # left deck
-rect(bx0 + 236, by0 + 34, bx0 + 400, by0 + 52, STEEL)  # right deck
+rect(bx0, by0 + 34, bx0 + 150, by0 + 52, STEEL)
+rect(bx0 + 236, by0 + 34, bx0 + 400, by0 + 52, STEEL)
 for px_ in (bx0 + 40, bx0 + 110, bx0 + 290, bx0 + 360):
-    rect(px_, by0 + 34, px_ + 16, by0 + 96, (74, 80, 94))  # pylons
-# broken span
+    rect(px_, by0 + 34, px_ + 16, by0 + 96, (74, 80, 94))
 rect(bx0 + 150, by0 + 40, bx0 + 236, by0 + 50, (34, 40, 52))
 rect(bx0 + 158, by0 + 52, bx0 + 196, by0 + 62, RED)
 rect(bx0 + 196, by0 + 62, bx0 + 228, by0 + 70, RED)
@@ -328,7 +324,6 @@ circle(gx_, gy_, 62, GREEN, False, 3)
 circle(gx_, gy_, 40, (46, 92, 72), False, 2)
 draw_text('COP31', gx_ - text_width('COP31', 2) // 2, gy_ - 7, GREEN, 2)
 draw_text('ANTALYA', gx_ - text_width('ANTALYA', 1) // 2, gy_ + 22, INK_DIM, 1)
-# revision 3: widen the COP31 dial spokes for balance
 import math
 for ang, col in ((180, ORANGE), (240, RED), (300, YELLOW)):
     r1, r2 = 62, 88
@@ -336,10 +331,35 @@ for ang, col in ((180, ORANGE), (240, RED), (300, YELLOW)):
     line(gx_ + r1 * math.cos(a), gy_ + r1 * math.sin(a),
          gx_ + r2 * math.cos(a), gy_ + r2 * math.sin(a), col, 2)
 
+# rev4: dense briefs section between the panels and the footer strips
+BRIEFS = [
+    ('ME', 'GULF DRONES INTERCEPTED OVER KUWAIT', RED),
+    ('ME', 'US CARRIER GROUP HOLDS OFF OMAN', RED),
+    ('UA', 'MOSCOW SAYS NATO NOW "A PARTY"', ORANGE),
+    ('UA', 'ODESA GRAIN TERMINAL HIT', ORANGE),
+    ('AS', 'TRILATERAL ENDS, NO COMMUNIQUE', BLUE),
+    ('AS', 'TAIWAN: 19 PLANES IN ADIZ', BLUE),
+    ('AF', 'UN URGES ETHIOPIA-ERITREA TALKS', YELLOW),
+    ('AF', 'SUDAN TALKS RESUME IN JEDDAH', YELLOW),
+    ('EU', 'NATO AIR-DEFENCE PLEDGE AGREED', GREEN),
+    ('EU', 'EU GAS STORAGE NEARS 92 PCT', GREEN),
+    ('AM', 'US CARTEL DESIGNATIONS IN EFFECT', BLUE),
+    ('AM', 'CANADA WILDFIRE EMERGENCY LIFTED', BLUE),
+]
+BX0, BY0 = 40, PY0 + 2 * PH + GAPY + 14
+BCOLW = 448
+BROWH = 22
+for i, (tag, txt, col) in enumerate(BRIEFS):
+    bx = BX0 + (i % 2) * (BCOLW + 24)
+    by = BY0 + (i // 2) * BROWH
+    rect(bx, by, bx + BCOLW, by + 1, (46, 58, 78))
+    draw_text(tag, bx + 8, by + 9, col, 2)
+    draw_text(txt, bx + 44, by + 9, INK_DIM, 2)
+
 # ---------------------------------------------------------------- footer strip
 CLIP = None
 
-FY0 = PY0 + 2 * PH + GAPY + 14   # first strip below the panels
+FY0 = BY0 + 6 * BROWH + 6
 rect(40, FY0, 984, FY0 + 38, PANEL)
 rect(40, FY0, 984, FY0 + 3, YELLOW)
 draw_text('ETHIOPIA AND ERITREA MASS FORCES ON THEIR BORDER  (REUTERS)', 56, FY0 + 12, YELLOW, 2)
@@ -366,7 +386,7 @@ def chunk(tag, data):
 raw = bytearray()
 stride = W * 3
 for y in range(H):
-    raw.append(0)  # filter type 0
+    raw.append(0)
     raw += pix[y * stride:(y + 1) * stride]
 
 png = b'\x89PNG\r\n\x1a\n'
