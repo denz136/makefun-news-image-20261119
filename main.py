@@ -1,3 +1,4 @@
+# rev6: final layout
 #!/usr/bin/env python3
 """Writes /output/entry.png — a one-image summary of world news for Thursday 19 November 2026.
 
