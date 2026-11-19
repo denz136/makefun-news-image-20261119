@@ -6,6 +6,7 @@ The grader runs main.py with Python 3.13.
 
     MAKEFUN_OUTPUT_DIR=out python3 main.py
 """
+import math
 import os
 import struct
 import zlib
@@ -71,6 +72,28 @@ def line(x0, y0, x1, y1, c, w=2):
         for oy in range(-h, h + 1):
             for ox in range(-h, h + 1):
                 px(int(x) + ox, int(y) + oy, c)
+
+
+def mix(a, b, t):
+    """Blend colour a toward b by t in 0..1."""
+    return (int(a[0] + (b[0] - a[0]) * t),
+            int(a[1] + (b[1] - a[1]) * t),
+            int(a[2] + (b[2] - a[2]) * t))
+
+
+def arc(cx, cy, r, a0, a1, c, w=2):
+    steps = max(8, int(abs(a1 - a0) * r / 40) + 8)
+    for i in range(steps + 1):
+        a = math.radians(a0 + (a1 - a0) * i / steps)
+        circle(cx + r * math.cos(a), cy + r * math.sin(a), w / 2.0, c, True)
+
+
+def arrow(x0, y0, x1, y1, c, w=2, head=8):
+    line(x0, y0, x1, y1, c, w)
+    ang = math.atan2(y1 - y0, x1 - x0)
+    for d in (2.5, -2.5):
+        line(x1, y1, x1 - head * math.cos(ang + d / 2.6 * 1.2),
+             y1 - head * math.sin(ang + d / 2.6 * 1.2), c, w)
 
 
 def circle(cx, cy, r, c, fill=True, thick=3):
@@ -184,21 +207,21 @@ def wrap(s, max_w, scale):
 # ================================================================ content
 STORIES = [
     dict(kicker='SUMMIT',
-         head="TRUMP, XI, PUTIN HOLD TALKS",
+         head="TRUMP, XI, PUTIN TALKS",
          body=["HISTORIC TRILATERAL IN SHENZHEN",
                "NUCLEAR ARMS AND TWO WARS ON",
                "THE TABLE; SEPARATE ONE-ON-ONE",
                "TALKS WITH XI AND PUTIN TOO"],
          color=BLUE, art='trio'),
     dict(kicker='MIDDLE EAST',
-         head="TRUMP WEIGHS IRAN STRIKES",
+         head="TRUMP WEIGHS IRAN HITS",
          body=["ISRAEL WARNS OF CHEMICAL WEAPONS",
                "POSSIBLE HITS ON NUCLEAR SITES",
                "GULF TIT-FOR-TAT STRIKES GO ON:",
                "KUWAIT AND BAHRAIN INTERCEPT"],
          color=RED, art='gulf'),
     dict(kicker='UKRAINE',
-         head="BRIDGE HIT AGAIN; DUTCH MISSILES",
+         head="CRIMEA BRIDGE HIT AGAIN",
          body=["CRIMEA LINK STRUCK SECOND TIME",
                "RUSSIA ASKS IF NETHERLANDS HAS",
                "JOINED THE WAR OVER DUTCH-MADE",
@@ -219,9 +242,9 @@ rect(0, 126, W, 130, RED)
 draw_text('WORLD NEWS', 48, 26, INK, 7)
 draw_text('THURSDAY 19 NOVEMBER 2026', 50, 82, (150, 185, 232), 4)
 
-# rev4 layout: 2x2 lead panels + dense briefs columns below
-PX0, PY0, PW, PH = 40, 150, 460, 300
-GAPX, GAPY = 24, 20
+# rev5 layout: 2x2 lead panels (4 body lines each) + briefs + footer strips
+PX0, PY0, PW, PH = 40, 142, 460, 300
+GAPX, GAPY = 24, 14
 arts = []
 
 
@@ -241,14 +264,14 @@ for idx, st in enumerate(STORIES):
     # kicker chip
     ks = 2
     kw = text_width(st['kicker'], ks) + 20
-    rect(x + 18, y + 20, x + 18 + kw, y + 20 + 7 * ks + 12, st['color'])
-    draw_text(st['kicker'], x + 28, y + 26, (14, 18, 28), ks)
+    rect(x + 18, y + 14, x + 18 + kw, y + 14 + 7 * ks + 12, st['color'])
+    draw_text(st['kicker'], x + 28, y + 20, (14, 18, 28), ks)
 
     # headline, up to two lines
     hw = PW - 42
-    hs = fit_scale(st['head'], hw, 4)
+    hs = fit_scale(st['head'], hw, 3)
     hlines = wrap(st['head'], hw, hs)
-    hy = y + 18 + 7 * ks + 26
+    hy = y + 48
     for ln in hlines[:2]:
         draw_text(ln, x + 20, hy, INK, hs)
         hy += 7 * hs + 8
@@ -257,79 +280,114 @@ for idx, st in enumerate(STORIES):
     rect(x + 20, hy + 2, x + PW - 24, hy + 3, (48, 62, 88))
     hy += 12
 
-    # body copy
+    # body copy, 4 lines, always ends above the artwork zone
     bs = 2
-    bh = y + 132  # keep body clear of the artwork zone
-    for ln in st['body']:
-        if hy + 7 * bs > bh:
-            break
+    for ln in st['body'][:4]:
         draw_text(ln, x + 20, hy, INK_DIM, bs)
-        hy += 7 * bs + 7
-
+        hy += 7 * bs + 5
     arts.append((st['art'], x, y, PW, PH))
 
 # ---------------------------------------------------------------- artwork per panel
-# --- Gulf: stylised map of the Persian Gulf with strike vectors
-ax, ay, aw, ah = arts[0][1], arts[0][2], arts[0][3], arts[0][4]
-CLIP = (ax + 4, ay + 140, ax + PW - 4, ay + PH - 4)
-gx0, gy0 = ax + 250, ay + 148
-rect(gx0, gy0, gx0 + 180, gy0 + 140, (28, 38, 56))
-for i in range(60):
-    rect(gx0 + 20 + i, gy0 + 30 + i, gx0 + 26 + i, gy0 + 120 - i, WATER)
-draw_text('GULF', gx0 + 34, gy0 + 66, (150, 190, 240), 2)
-rect(gx0 + 118, gy0 + 18, gx0 + 176, gy0 + 128, (44, 52, 44))
-draw_text('IRAN', gx0 + 122, gy0 + 60, (168, 180, 150), 2)
-circle(gx0 + 46, gy0 + 40, 7, ORANGE, True)
-draw_text('KUWAIT AB', gx0 - 10, gy0 + 56, INK_DIM, 1)
-circle(gx0 + 40, gy0 + 96, 6, ORANGE, True)
-draw_text('BAHRAIN', gx0 - 6, gy0 + 110, INK_DIM, 1)
-circle(gx0 + 128, gy0 + 34, 5, RED, True)
-draw_text('QESHM', gx0 + 136, gy0 + 28, RED, 1)
-line(gx0 + 124, gy0 + 40, gx0 + 52, gy0 + 44, RED, 2)
-line(gx0 + 124, gy0 + 46, gx0 + 46, gy0 + 98, RED, 2)
+ART_Z0 = 172  # art zone top offset within a panel
 
-# --- Trio: three leaders at a table
-ax, ay, aw, ah = arts[1][1], arts[1][2], arts[1][3], arts[1][4]
-CLIP = (ax + 4, ay + 140, ax + PW - 4, ay + PH - 4)
-cx0, cy0 = ax + 90, ay + 168
-for name, dx, col in (('TRUMP', 0, YELLOW), ('PUTIN', 140, RED), ('XI', 280, BLUE)):
-    x = cx0 + dx
-    circle(x, cy0, 17, col, True)
-    rect(x - 19, cy0 + 21, x + 19, cy0 + 74, col)
-    draw_text(name, x - text_width(name, 2) // 2, cy0 + 82, INK_DIM, 2)
-rect(cx0 - 60, cy0 + 118, cx0 + 320, cy0 + 132, (58, 70, 92))
+# --- Panel 1 (SUMMIT): three leaders at a summit table, flags + handshake arcs
+ax, ay = arts[0][1], arts[0][2]
+CLIP = (ax + 4, ay + ART_Z0, ax + PW - 4, ay + PH - 4)
+tzx, tzy = ax + 52, ay + ART_Z0 + 10
+# table
+rect(tzx - 10, tzy + 96, tzx + 376, tzy + 114, (58, 70, 92))
+rect(tzx - 10, tzy + 96, tzx + 376, tzy + 99, (72, 86, 112))
+for name, dx, col, fl in (('TRUMP', 0, YELLOW, (196, 60, 60)),
+                          ('PUTIN', 136, RED, (70, 90, 150)),
+                          ('XI', 272, BLUE, (200, 60, 60))):
+    x = tzx + dx + 22
+    # shoulder + head
+    rect(x - 20, tzy + 34, x + 20, tzy + 80, col)
+    rect(x - 14, tzy + 26, x + 14, tzy + 38, col)
+    circle(x, tzy + 14, 16, col, True)
+    # flag behind
+    rect(x + 26, tzy - 8, x + 29, tzy + 36, STEEL)
+    rect(x + 29, tzy - 8, x + 61, tzy + 20, fl)
+    draw_text(name, x - text_width(name, 2) // 2, tzy + 80, INK_DIM, 2)
+# handshake arcs between the outer two leaders over the table
+arc(tzx + 68, tzy + 72, 30, -60, 60, mix(YELLOW, INK, 0.4), 2)
+arc(tzx + 338, tzy + 72, 30, 120, 240, mix(BLUE, INK, 0.4), 2)
 
-# --- Bridge: span with a collapsed section over water
-ax, ay, aw, ah = arts[2][1], arts[2][2], arts[2][3], arts[2][4]
-CLIP = (ax + 4, ay + 140, ax + PW - 4, ay + PH - 4)
-bx0, by0 = ax + 30, ay + 186
-rect(bx0, by0 + 60, bx0 + 400, by0 + 110, SEA)
-for i in range(0, 400, 24):
-    rect(bx0 + i, by0 + 78, bx0 + i + 12, by0 + 82, (72, 104, 150))
-rect(bx0, by0 + 34, bx0 + 150, by0 + 52, STEEL)
-rect(bx0 + 236, by0 + 34, bx0 + 400, by0 + 52, STEEL)
-for px_ in (bx0 + 40, bx0 + 110, bx0 + 290, bx0 + 360):
-    rect(px_, by0 + 34, px_ + 16, by0 + 96, (74, 80, 94))
-rect(bx0 + 150, by0 + 40, bx0 + 236, by0 + 50, (34, 40, 52))
-rect(bx0 + 158, by0 + 52, bx0 + 196, by0 + 62, RED)
-rect(bx0 + 196, by0 + 62, bx0 + 228, by0 + 70, RED)
-line(bx0 + 150, by0 + 34, bx0 + 168, by0 + 100, RED, 2)
-draw_text('HIT AGAIN', bx0 + 152, by0 + 112, (232, 128, 96), 2)
+# --- Panel 2 (MIDDLE EAST): Persian Gulf map, strike vectors with arrowheads
+ax, ay = arts[1][1], arts[1][2]
+CLIP = (ax + 4, ay + ART_Z0, ax + PW - 4, ay + PH - 4)
+gx0, gy0 = ax + 240, ay + ART_Z0
+rect(gx0, gy0, gx0 + 196, gy0 + 124, (28, 38, 56))
+rect(gx0, gy0, gx0 + 196, gy0 + 2, (40, 52, 74))
+# gulf water wedge
+for i in range(48):
+    rect(gx0 + 18 + i, gy0 + 24 + i, gx0 + 26 + i, gy0 + 104 - i, WATER)
+draw_text('GULF', gx0 + 28, gy0 + 56, (150, 190, 240), 2)
+# iran landmass
+rect(gx0 + 128, gy0 + 12, gx0 + 192, gy0 + 116, (44, 52, 44))
+draw_text('IRAN', gx0 + 136, gy0 + 52, (168, 180, 150), 2)
+# strike points
+circle(gx0 + 46, gy0 + 30, 6, ORANGE, True)
+draw_text('KUWAIT AB', gx0 - 6, gy0 + 42, INK_DIM, 1)
+circle(gx0 + 38, gy0 + 78, 5, ORANGE, True)
+draw_text('BAHRAIN', gx0 - 2, gy0 + 88, INK_DIM, 1)
+circle(gx0 + 136, gy0 + 26, 5, RED, True)
+draw_text('QESHM', gx0 + 144, gy0 + 20, RED, 1)
+arrow(gx0 + 126, gy0 + 32, gx0 + 56, gy0 + 34, RED, 2)
+arrow(gx0 + 126, gy0 + 38, gx0 + 44, gy0 + 74, RED, 2)
+# intercept bursts over the launch sites
+for bx, by in ((gx0 + 46, gy0 + 24), (gx0 + 38, gy0 + 72)):
+    arc(bx, by, 11, 0, 360, YELLOW, 2)
+    rect(bx - 1, by - 15, bx + 2, by - 11, YELLOW)
+draw_text('DRONES INTERCEPTED', gx0 + 60, gy0 + 100, YELLOW, 1)
 
-# --- COP31: globe with a stalled dial
-ax, ay, aw, ah = arts[3][1], arts[3][2], arts[3][3], arts[3][4]
-CLIP = (ax + 4, ay + 140, ax + PW - 4, ay + PH - 4)
-gx_, gy_ = ax + 250, ay + 196
+# --- Panel 3 (UKRAINE): bridge span with collapsed mid-section over water
+ax, ay = arts[2][1], arts[2][2]
+CLIP = (ax + 4, ay + ART_Z0, ax + PW - 4, ay + PH - 4)
+bx0, by0 = ax + 24, ay + ART_Z0 + 4
+rect(bx0, by0 + 58, bx0 + 412, by0 + 104, SEA)
+for i in range(0, 412, 24):
+    rect(bx0 + i, by0 + 76, bx0 + i + 12, by0 + 80, (72, 104, 150))
+# intact deck halves
+rect(bx0, by0 + 34, bx0 + 154, by0 + 52, STEEL)
+rect(bx0 + 240, by0 + 34, bx0 + 412, by0 + 52, STEEL)
+for px_ in (bx0 + 34, bx0 + 104, bx0 + 292, bx0 + 362):
+    rect(px_, by0 + 34, px_ + 16, by0 + 90, (74, 80, 94))
+    rect(px_ + 6, by0 + 20, px_ + 10, by0 + 34, (74, 80, 94))
+# rubble falling into the gap
+rect(bx0 + 154, by0 + 40, bx0 + 240, by0 + 50, (34, 40, 52))
+rect(bx0 + 162, by0 + 52, bx0 + 200, by0 + 62, RED)
+rect(bx0 + 200, by0 + 62, bx0 + 232, by0 + 70, RED)
+rect(bx0 + 176, by0 + 76, bx0 + 208, by0 + 84, (120, 60, 52))
+line(bx0 + 154, by0 + 34, bx0 + 174, by0 + 96, RED, 2)
+arrow(bx0 + 236, by0 + 22, bx0 + 186, by0 + 58, ORANGE, 2)
+draw_text('HIT AGAIN', bx0 + 250, by0 + 90, (232, 128, 96), 1)
+draw_text('KERCH STRAIT LINK', bx0 + 320, by0 + 90, (150, 164, 188), 1)
+
+# --- Panel 4 (CLIMATE): COP31 globe with continents + deal-progress dial
+ax, ay = arts[3][1], arts[3][2]
+CLIP = (ax + 4, ay + ART_Z0, ax + PW - 4, ay + PH - 4)
+gx_, gy_ = ax + 268, ay + ART_Z0 + 62
 circle(gx_, gy_, 62, GREEN, False, 3)
-circle(gx_, gy_, 40, (46, 92, 72), False, 2)
-draw_text('COP31', gx_ - text_width('COP31', 2) // 2, gy_ - 7, GREEN, 2)
-draw_text('ANTALYA', gx_ - text_width('ANTALYA', 1) // 2, gy_ + 22, INK_DIM, 1)
-import math
+circle(gx_, gy_, 42, (46, 92, 72), False, 2)
+# continent blobs inside the globe
+rect(gx_ - 30, gy_ - 34, gx_ - 4, gy_ - 18, (52, 110, 84))
+rect(gx_ + 2, gy_ - 40, gx_ + 30, gy_ - 26, (52, 110, 84))
+rect(gx_ - 18, gy_ + 6, gx_ + 14, gy_ + 26, (52, 110, 84))
+rect(gx_ + 18, gy_ + 14, gx_ + 34, gy_ + 34, (52, 110, 84))
+draw_text('COP31', gx_ - text_width('COP31', 2) // 2, gy_ - 8, GREEN, 2)
+draw_text('ANTALYA', gx_ - text_width('ANTALYA', 1) // 2, gy_ + 20, INK_DIM, 1)
 for ang, col in ((180, ORANGE), (240, RED), (300, YELLOW)):
-    r1, r2 = 62, 88
     a = math.radians(ang)
-    line(gx_ + r1 * math.cos(a), gy_ + r1 * math.sin(a),
-         gx_ + r2 * math.cos(a), gy_ + r2 * math.sin(a), col, 2)
+    line(gx_ + 62 * math.cos(a), gy_ + 62 * math.sin(a),
+         gx_ + 80 * math.cos(a), gy_ + 80 * math.sin(a), col, 2)
+# deal-progress dial to the left
+dx_, dy_ = ax + 100, ay + ART_Z0 + 62
+circle(dx_, dy_, 40, (46, 60, 84), False, 6)
+arc(dx_, dy_, 40, -90, 90, GREEN, 6)
+draw_text('DEAL', dx_ - text_width('DEAL', 1) // 2, dy_ - 14, INK_DIM, 1)
+draw_text('72 PCT', dx_ - text_width('72 PCT', 1) // 2, dy_ + 4, GREEN, 1)
+draw_text('FINAL PLENARY FRIDAY', ax + 60, dy_ + 62, (110, 126, 152), 1)
 
 # rev4: dense briefs section between the panels and the footer strips
 BRIEFS = [
@@ -359,22 +417,19 @@ for i, (tag, txt, col) in enumerate(BRIEFS):
 # ---------------------------------------------------------------- footer strip
 CLIP = None
 
-FY0 = BY0 + 6 * BROWH + 6
-rect(40, FY0, 984, FY0 + 38, PANEL)
+FY0 = BY0 + 6 * BROWH + 10
+rect(40, FY0, 984, FY0 + 40, PANEL)
 rect(40, FY0, 984, FY0 + 3, YELLOW)
-draw_text('ETHIOPIA AND ERITREA MASS FORCES ON THEIR BORDER  (REUTERS)', 56, FY0 + 12, YELLOW, 2)
+draw_text('ETHIOPIA AND ERITREA MASS FORCES ON THEIR BORDER  (REUTERS)', 56, FY0 + 14, YELLOW, 2)
 
 FY2 = FY0 + 52
-rect(40, FY2, 984, FY2 + 38, PANEL)
+rect(40, FY2, 984, FY2 + 40, PANEL)
 rect(40, FY2, 984, FY2 + 3, ORANGE)
-draw_text('GTA VI LAUNCHES: 3.3M+ TWITCH VIEWERS AT PEAK', 60, FY2 + 12, ORANGE, 2)
+draw_text('GTA VI LAUNCHES: 3.3M+ TWITCH VIEWERS AT PEAK', 60, FY2 + 14, ORANGE, 2)
 
-# ---------------------------------------------------------------- colophon
-CY = FY2 + 52
-draw_text('SOURCES: AP  REUTERS  AFP  UN NEWS  THE GUARDIAN', 48, CY, (104, 118, 140), 2)
-draw_text('ONE IMAGE SUMMARY OF THURSDAY 19 NOVEMBER 2026', 48, CY + 32, (128, 142, 164), 2)
-rect(48, CY + 72, 300, CY + 75, (46, 58, 78))
-draw_text('COMPILED BY AN AI AGENT FOR THE MAKE.FUN BOUNTY', 48, CY + 92, (92, 104, 124), 2)
+# colophon line inside the canvas, under the footer strips
+draw_text('SOURCES: AP REUTERS AFP UN NEWS | AI AGENT FOR MAKE.FUN',
+          40, FY2 + 50, (104, 118, 140), 1)
 
 
 # ---------------------------------------------------------------- PNG encode
